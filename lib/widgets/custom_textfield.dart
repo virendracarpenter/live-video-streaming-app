@@ -3,15 +3,18 @@ import 'package:streaming_app/utils/colors.dart';
 
 class CustomTextField extends StatelessWidget {
   final TextEditingController controller;
+  final Function(String)? onTap;
+
   const CustomTextField({
     super.key,
     required this.controller,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return TextField(
-      onSubmitted: ,
+      onSubmitted: onTap,
       controller: controller,
       decoration: const InputDecoration(
         focusedBorder: OutlineInputBorder(
