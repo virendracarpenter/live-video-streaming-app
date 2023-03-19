@@ -1,5 +1,4 @@
-import 'dart:html';
-
+import 'dart:convert';
 import 'package:agora_rtc_engine/rtc_engine.dart';
 import 'package:agora_rtc_engine/rtc_local_view.dart' as rtc_local_view;
 import 'package:agora_rtc_engine/rtc_remote_view.dart' as rtc_remote_view;
@@ -11,7 +10,7 @@ import 'package:streaming_app/config/appid.dart';
 import 'package:streaming_app/providers/user_provider.dart';
 import 'package:streaming_app/resources/firestore_methods.dart';
 import 'package:streaming_app/screens/home_screen.dart';
-
+import 'package:http/http.dart' as http;
 import '../widgets/chat.dart';
 
 class BroadcastScreen extends StatefulWidget {
@@ -56,43 +55,61 @@ class _BroadcastScreenState extends State<BroadcastScreen> {
     _joinChannel();
   }
 
+  String baseuUrl = "http://192.168.67.192:8080";
+
+  String? token;
+
+  Future<void> getToken() async {
+    final res = await http.get(
+      Uri.parse(
+          '$baseuUrl/rtc/${widget.channelId}/publisher/userAccount/${Provider.of<UserProvider>(context, listen: false).user.uid}/'),
+    );
+
+    if (res.statusCode == 200) {
+      setState(() {
+        token = res.body;
+        token = jsonDecode(token!)['rtcToken'];
+      });
+    } else {
+      debugPrint('Failed Fectching Token');
+    }
+  }
+
   void _addListeners() {
     // Register the event handler
     _engine.setEventHandler(
-      RtcEngineEventHandler(
-        joinChannelSuccess: (channel, uid, elapsed) {
-          debugPrint(
-              "Local user uid:$uid joined the channel $channel $elapsed");
-        },
-        userJoined: (uid, elapsed) {
-          debugPrint("Remote user uid:$uid joined the channel $elapsed");
-          setState(() {
-            remoteUid.add(uid);
-          });
-        },
-        userOffline: (uid, reason) {
-          debugPrint("Remote user uid:$uid left the channel $reason");
-          setState(() {
-            remoteUid.removeWhere((element) => element == uid);
-          });
-        },
-        leaveChannel: (stats) {
-          debugPrint("Remote user leaved the channel $stats");
-          setState(() {
-            remoteUid.clear();
-          });
-        },
-      ),
+      RtcEngineEventHandler(joinChannelSuccess: (channel, uid, elapsed) {
+        debugPrint("Local user uid:$uid joined the channel $channel $elapsed");
+      }, userJoined: (uid, elapsed) {
+        debugPrint("Remote user uid:$uid joined the channel $elapsed");
+        setState(() {
+          remoteUid.add(uid);
+        });
+      }, userOffline: (uid, reason) {
+        debugPrint("Remote user uid:$uid left the channel $reason");
+        setState(() {
+          remoteUid.removeWhere((element) => element == uid);
+        });
+      }, leaveChannel: (stats) {
+        debugPrint("Remote user leaved the channel $stats");
+        setState(() {
+          remoteUid.clear();
+        });
+      }, tokenPrivilegeWillExpire: (token) async {
+        await getToken();
+        await _engine.renewToken(token);
+      }),
     );
   }
 
   void _joinChannel() async {
+    await getToken();
     if (defaultTargetPlatform == TargetPlatform.android) {
       await [Permission.microphone, Permission.camera].request();
     }
     await _engine.joinChannelWithUserAccount(
-      tempToken,
-      'test', //widget.channelId,
+      token,
+      widget.channelId, //widget.channelId,
       Provider.of<UserProvider>(context, listen: false).user.uid,
     );
   }

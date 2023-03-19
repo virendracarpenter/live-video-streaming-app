@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:streaming_app/providers/user_provider.dart';
@@ -15,7 +16,19 @@ import 'models/user.dart' as model;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  if (kIsWeb) {
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+          apiKey: "AIzaSyBCJBjorhMRp1oHSPbM4RtNQ4017O9fXWY",
+          authDomain: "live-streaming-app-project.firebaseapp.com",
+          projectId: "live-streaming-app-project",
+          storageBucket: "live-streaming-app-project.appspot.com",
+          messagingSenderId: "719476651367",
+          appId: "1:719476651367:web:2bd106c54e6e7d7d4bebc2"),
+    );
+  } else {
+    await Firebase.initializeApp();
+  }
   runApp(MultiProvider(providers: [
     ChangeNotifierProvider(
       create: (_) => UserProvider(),
