@@ -16,6 +16,7 @@ import 'models/user.dart' as model;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   if (kIsWeb) {
     await Firebase.initializeApp(
       options: const FirebaseOptions(

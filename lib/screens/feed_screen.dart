@@ -2,8 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:streaming_app/models/livestream.dart';
 import 'package:streaming_app/resources/firestore_methods.dart';
+import 'package:streaming_app/responsive/responsive_layout.dart';
 import 'package:streaming_app/screens/broadcast_screen.dart';
-import 'package:streaming_app/screens/browse_screen.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../widgets/loading_indicator.dart';
 
@@ -43,8 +43,12 @@ class _FeedScreenState extends State<FeedScreen> {
                   return const LoadingIndicator();
                 }
                 return Expanded(
-                  child: ListView.builder(
+                  child: ResponsiveLayout(
+                    desktop: GridView.builder(
                       itemCount: snapshot.data.docs.length,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3),
                       itemBuilder: (context, index) {
                         LiveStream post = LiveStream.fromMap(
                             snapshot.data.docs[index].data());
@@ -62,14 +66,16 @@ class _FeedScreenState extends State<FeedScreen> {
                             );
                           },
                           child: Container(
-                            height: size.height * 0.1,
                             margin: const EdgeInsets.symmetric(vertical: 10),
-                            child: Row(
+                            child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                AspectRatio(
-                                  aspectRatio: 16 / 9,
-                                  child: Image.network(post.image),
+                                SizedBox(
+                                  height: size.height * 0.35,
+                                  child: Image.network(
+                                    post.image,
+                                    fit: BoxFit.contain,
+                                  ),
                                 ),
                                 const SizedBox(width: 10),
                                 Column(
@@ -97,17 +103,79 @@ class _FeedScreenState extends State<FeedScreen> {
                                         'Started ${timeago.format(post.startedAt.toDate())}'),
                                   ],
                                 ),
-                                IconButton(
-                                  onPressed: () {},
-                                  icon: const Icon(
-                                    Icons.more_vert,
-                                  ),
-                                ),
                               ],
                             ),
                           ),
                         );
-                      }),
+                      },
+                    ),
+                    mobile: ListView.builder(
+                        itemCount: snapshot.data.docs.length,
+                        itemBuilder: (context, index) {
+                          LiveStream post = LiveStream.fromMap(
+                              snapshot.data.docs[index].data());
+                          return InkWell(
+                            onTap: () async {
+                              await FirestoreMethods()
+                                  .updateViewCount(post.channelId, true);
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => BroadcastScreen(
+                                    isBroadcaster: false,
+                                    channelId: post.channelId,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              height: size.height * 0.1,
+                              margin: const EdgeInsets.symmetric(vertical: 10),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  AspectRatio(
+                                    aspectRatio: 16 / 9,
+                                    child: Image.network(post.image),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Column(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceAround,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        post.username,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 20,
+                                          height: 0,
+                                        ),
+                                      ),
+                                      Text(
+                                        post.title,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          height: 0,
+                                        ),
+                                      ),
+                                      Text('${post.viewers} watching'),
+                                      Text(
+                                          'Started ${timeago.format(post.startedAt.toDate())}'),
+                                    ],
+                                  ),
+                                  IconButton(
+                                    onPressed: () {},
+                                    icon: const Icon(
+                                      Icons.more_vert,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }),
+                  ),
                 );
               }),
         ],
